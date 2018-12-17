@@ -49,8 +49,6 @@ class StateMachine<T>(
         ).apply(init))
 
         fun build(): StateMachine<T> {
-            println(this) // for debug
-
             val allStateDetails = allStateDetails
 
             val stateToRootMap = mutableMapOf<T, List<StateDetail<T>>>()
