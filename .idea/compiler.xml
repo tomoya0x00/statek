@@ -14,5 +14,15 @@
     <annotationProcessing>
       <profile default="true" name="Default" enabled="true" />
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="com.example.statek.jvmMain" target="1.6" />
+      <module name="com.example.statek.jvmTest" target="1.6" />
+      <module name="com.github.statek.jvmMain" target="1.6" />
+      <module name="com.github.statek.jvmTest" target="1.6" />
+      <module name="com.github.tomoya0x00.state.statek.jvmMain" target="1.6" />
+      <module name="com.github.tomoya0x00.state.statek.jvmTest" target="1.6" />
+      <module name="com.github.tomoya0x00.statek.jvmMain" target="1.6" />
+      <module name="com.github.tomoya0x00.statek.jvmTest" target="1.6" />
+    </bytecodeTargetLevel>
   </component>
 </project>

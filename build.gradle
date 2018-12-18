@@ -4,8 +4,8 @@ plugins {
 repositories {
     mavenCentral()
 }
-group 'com.example'
-version '0.0.1'
+group 'com.github.tomoya0x00.statek'
+version '0.1.0'
 
 apply plugin: 'maven-publish'
 
