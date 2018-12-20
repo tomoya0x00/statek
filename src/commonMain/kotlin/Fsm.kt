@@ -7,23 +7,25 @@ private typealias EventName = String
 private typealias Action = () -> Unit
 private typealias Entry<T> = T.() -> Unit
 private typealias Exit<T> = T.() -> Unit
+private typealias Guard<T> = (T) -> Boolean
+private typealias EdgeAction<T> = (T) -> Unit
 
 @DslMarker
 annotation class FsmDsl
 
 class StateMachine<T>(
-        private var fsmContext: FsmContext<T>,
-        private val transitionMap: Map<T, List<Transition<T>>>,
-        private val stateToRootMap: Map<T, List<StateDetail<T>>>
+    private var fsmContext: FsmContext<T>,
+    private val transitionMap: Map<T, List<Transition<T>>>,
+    private val stateToRootMap: Map<T, List<StateDetail<T>>>
 
 ) where T : Enum<T>, T : BaseState {
     val state: T
         get() = fsmContext.state
 
     fun isStateOfChildOf(state: T): Boolean =
-            stateToRootMap[this.state]?.let { stateToRoot ->
-                stateToRoot.drop(1).any { it.state == state }
-            } ?: false
+        stateToRootMap[this.state]?.let { stateToRoot ->
+            stateToRoot.drop(1).any { it.state == state }
+        } ?: false
 
     fun dispatch(event: BaseEvent): T {
         return fsmContext.dispatch(event, transitionMap)
@@ -39,15 +41,15 @@ class StateMachine<T>(
             get() = rootChildren.map { it.allStateDetails }.flatten()
 
         fun state(
-                state: T,
-                entry: Entry<T> = {},
-                exit: Exit<T> = {},
-                init: StateDetail<T>.() -> Unit = {}
+            state: T,
+            entry: Entry<T> = {},
+            exit: Exit<T> = {},
+            init: StateDetail<T>.() -> Unit = {}
         ) = this.rootChildren.add(StateDetail(
-                parent = null,
-                state = state,
-                entry = { entry.invoke(state) },
-                exit = { exit.invoke(state) }
+            parent = null,
+            state = state,
+            entry = { entry.invoke(state) },
+            exit = { exit.invoke(state) }
         ).apply(init))
 
         fun build(): StateMachine<T> {
@@ -75,17 +77,17 @@ class StateMachine<T>(
 
                     val exitActions = stateToRoot.dropLast(ignoreStatesCount).map { it.exit }
                     val entryActions = rootToNext.drop(ignoreStatesCount).map { it.entry }
-                    val actions = mutableListOf(edge.action).apply {
-                        addAll(exitActions)
-                        addAll(entryActions)
-                    }
+                    val actions = exitActions + entryActions
 
-                    transitionMap[stateDetail.state]?.add(Transition(
+                    transitionMap[stateDetail.state]?.add(
+                        Transition(
                             event = edge.eventName,
                             guard = edge.guard,
                             next = edge.next,
+                            edgeAction = edge.action,
                             actions = actions
-                    ))
+                        )
+                    )
                 }
             }
 
@@ -103,19 +105,20 @@ class StateMachine<T>(
     }
 
     data class Transition<T>(
-            val event: EventName,
-            val guard: ((BaseEvent) -> Boolean)? = null,
-            val next: T,
-            val actions: List<Action> = listOf()
+        val event: EventName,
+        val guard: ((BaseEvent) -> Boolean)? = null,
+        val next: T,
+        val edgeAction: ((BaseEvent) -> Unit)? = null,
+        val actions: List<Action> = listOf()
     ) where T : Enum<T>, T : BaseState
 }
 
 @FsmDsl
 class StateDetail<T>(
-        val parent: StateDetail<T>?,
-        val state: T,
-        val entry: Action = {},
-        val exit: Action = {}
+    val parent: StateDetail<T>?,
+    val state: T,
+    val entry: Action = {},
+    val exit: Action = {}
 ) where T : Enum<T>, T : BaseState {
     private val children: MutableList<StateDetail<T>> = mutableListOf()
     val edges: MutableList<Edge<T>> = mutableListOf()
@@ -124,26 +127,26 @@ class StateDetail<T>(
         get() = children.map { it.allStateDetails }.flatten() + this
 
     fun state(
-            state: T,
-            entry: Entry<T> = {},
-            exit: Exit<T> = {},
-            init: StateDetail<T>.() -> Unit = {}
+        state: T,
+        entry: Entry<T> = {},
+        exit: Exit<T> = {},
+        init: StateDetail<T>.() -> Unit = {}
     ) = this.children.add(StateDetail(
-            parent = this,
-            state = state,
-            entry = { entry.invoke(state) },
-            exit = { exit.invoke(state) }
+        parent = this,
+        state = state,
+        entry = { entry.invoke(state) },
+        exit = { exit.invoke(state) }
     ).apply(init))
 
     inline fun <reified R : BaseEvent> edge(
-            next: T = this.state,
-            noinline guard: ((R) -> Boolean)? = null,
-            noinline action: Action = {}
+        next: T = this.state,
+        noinline guard: Guard<R>? = null,
+        noinline action: EdgeAction<R>? = null
     ) = this.edges.add(Edge(
-            eventName = R::class.simpleName ?: "",
-            guard = guard?.let { { event: BaseEvent -> it.invoke(event as R) } },
-            next = next,
-            action = action
+        eventName = R::class.simpleName ?: "",
+        guard = guard?.let { { event: BaseEvent -> it.invoke(event as R) } },
+        next = next,
+        action = action?.let { { event: BaseEvent -> it.invoke(event as R) } }
     ))
 
     override fun toString(): String {
@@ -154,10 +157,10 @@ class StateDetail<T>(
 }
 
 class Edge<T>(
-        val eventName: EventName,
-        val next: T,
-        val guard: ((BaseEvent) -> Boolean)? = null,
-        val action: Action
+    val eventName: EventName,
+    val next: T,
+    val guard: ((BaseEvent) -> Boolean)? = null,
+    val action: ((BaseEvent) -> Unit)? = null
 ) where T : Enum<T>, T : BaseState {
     override fun toString(): String {
         return "--> ${next.name} : $eventName"
@@ -165,7 +168,7 @@ class Edge<T>(
 }
 
 private fun Any.enumNameOrClassName(): String =
-        if (this is Enum<*>) this.name else this::class.simpleName ?: ""
+    if (this is Enum<*>) this.name else this::class.simpleName ?: ""
 
 class FsmContext<T>(initial: T)
         where T : Enum<T>, T : BaseState {
@@ -176,10 +179,11 @@ class FsmContext<T>(initial: T)
     fun dispatch(event: BaseEvent, transitionMap: Map<T, List<StateMachine.Transition<T>>>): T {
         val transition = transitionMap[state]?.let { transitions ->
             transitions.filter { it.event == event::class.simpleName }
-                    .firstOrNull { it.guard?.invoke(event) ?: true }
+                .firstOrNull { it.guard?.invoke(event) ?: true }
         }
 
         transition?.run {
+            edgeAction?.invoke(event)
             actions.forEach { it.invoke() }
             state = next
         }
@@ -189,7 +193,7 @@ class FsmContext<T>(initial: T)
 }
 
 fun <T> stateMachine(
-        initial: T,
-        init: StateMachine.Builder<T>.() -> Unit
+    initial: T,
+    init: StateMachine.Builder<T>.() -> Unit
 ): StateMachine<T> where T : Enum<T>, T : BaseState =
-        StateMachine.Builder(initial = initial).apply(init).build()
+    StateMachine.Builder(initial = initial).apply(init).build()
