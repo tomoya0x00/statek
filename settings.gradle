@@ -8,6 +8,3 @@ pluginManagement {
     }
 }
 rootProject.name = 'statek'
-
-
-enableFeaturePreview('GRADLE_METADATA')

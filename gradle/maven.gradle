@@ -1,0 +1,30 @@
+apply from: rootProject.file('gradle/metadata.gradle')
+
+def pomConfig = {
+    licenses {
+        license {
+            name 'The Apache Software License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution 'repo'
+        }
+    }
+    developers {
+        metadata.developer
+    }
+
+    scm {
+        url metadata.repository
+    }
+}
+
+def withPom = { pom ->
+    pom.withXml {
+        def root = asNode()
+        root.appendNode('name', project.name)
+        root.appendNode('description', metadata.desc)
+        root.appendNode('url', metadata.website)
+        root.children().last() + pomConfig
+    }
+}
+
+project.ext.configurePom = withPom

@@ -21,8 +21,10 @@
       <module name="com.github.statek.jvmTest" target="1.6" />
       <module name="com.github.tomoya0x00.state.statek.jvmMain" target="1.6" />
       <module name="com.github.tomoya0x00.state.statek.jvmTest" target="1.6" />
-      <module name="com.github.tomoya0x00.statek.jvmMain" target="1.6" />
-      <module name="com.github.tomoya0x00.statek.jvmTest" target="1.6" />
+      <module name="com.github.tomoya0x00.statek.statek.jvmMain" target="1.6" />
+      <module name="com.github.tomoya0x00.statek.statek.jvmTest" target="1.6" />
+      <module name="statek.jvmMain" target="1.6" />
+      <module name="statek.jvmTest" target="1.6" />
     </bytecodeTargetLevel>
   </component>
 </project>

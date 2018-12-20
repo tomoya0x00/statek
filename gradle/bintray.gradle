@@ -1,0 +1,28 @@
+apply plugin: 'com.jfrog.bintray'
+
+apply from: rootProject.file('gradle/metadata.gradle')
+
+Properties properties = new Properties()
+properties.load(rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty('bintrayUser') ?: System.getenv('BINTRAY_USER')
+    key = properties.getProperty('bintrayApiKey') ?: System.getenv('BINTRAY_API_KEY')
+
+    pkg {
+        repo = 'maven'
+        name = metadata.artifactId
+        desc = metadata.desc
+        websiteUrl = metadata.website
+        vcsUrl = metadata.repository
+        issueTrackerUrl = metadata.issues
+        licenses = metadata.licenses
+
+        version {
+            name = project.version
+            released = new Date()
+            vcsTag = project.version
+        }
+    }
+}
+

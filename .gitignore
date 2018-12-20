@@ -69,3 +69,5 @@ fabric.properties
 .idea/kotlinc.xml
 
 .idea/artifacts
+
+local.properties

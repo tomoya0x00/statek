@@ -1,0 +1,42 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+apply from: rootProject.file('gradle/platform.gradle')
+apply from: rootProject.file('gradle/maven.gradle')
+apply from: rootProject.file('gradle/metadata.gradle')
+
+def platform = platformOf(project)
+
+Properties properties = new Properties()
+properties.load(rootProject.file('local.properties').newDataInputStream())
+
+publishing {
+    repositories {
+        maven {
+            credentials {
+                username properties.getProperty('bintrayUser') ?: System.getenv('BINTRAY_USER')
+                password properties.getProperty('bintrayApiKey') ?: System.getenv('BINTRAY_API_KEY')
+            }
+            url 'https://api.bintray.com/maven/tomoya0x00/maven/statek/'
+        }
+    }
+
+    publications {
+        MyPublication(MavenPublication) {
+            if (platform != 'native') {
+                from components.java
+            }
+
+            artifactId rootProject.name
+            groupId project.group
+            version project.version
+
+            configurePom(pom)
+        }
+    }
+}
+
+apply from: rootProject.file("gradle/bintray.gradle")
+
