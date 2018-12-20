@@ -1,3 +1,5 @@
+package com.github.tomoya0x00.statek
+
 interface BaseState
 interface BaseEvent
 

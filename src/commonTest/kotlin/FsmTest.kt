@@ -1,3 +1,7 @@
+import com.github.tomoya0x00.statek.BaseEvent
+import com.github.tomoya0x00.statek.BaseState
+import com.github.tomoya0x00.statek.StateMachine
+import com.github.tomoya0x00.statek.stateMachine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
