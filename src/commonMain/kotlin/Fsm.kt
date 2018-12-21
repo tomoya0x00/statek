@@ -7,8 +7,8 @@ private typealias EventName = String
 private typealias Action = () -> Unit
 private typealias Entry<T> = T.() -> Unit
 private typealias Exit<T> = T.() -> Unit
-private typealias Guard<T> = (T) -> Boolean
-private typealias EdgeAction<T> = (T) -> Unit
+private typealias Guard<S, E> = S.(E) -> Boolean
+private typealias EdgeAction<S, E> = S.(E) -> Unit
 
 @DslMarker
 annotation class FsmDsl
@@ -140,13 +140,13 @@ class StateDetail<T>(
 
     inline fun <reified R : BaseEvent> edge(
         next: T = this.state,
-        noinline guard: Guard<R>? = null,
-        noinline action: EdgeAction<R>? = null
+        noinline guard: Guard<T, R>? = null,
+        noinline action: EdgeAction<T, R>? = null
     ) = this.edges.add(Edge(
         eventName = R::class.simpleName ?: "",
-        guard = guard?.let { { event: BaseEvent -> it.invoke(event as R) } },
+        guard = guard?.let { { event: BaseEvent -> it.invoke(state, event as R) } },
         next = next,
-        action = action?.let { { event: BaseEvent -> it.invoke(event as R) } }
+        action = action?.let { { event: BaseEvent -> it.invoke(state, event as R) } }
     ))
 
     override fun toString(): String {
