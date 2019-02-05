@@ -1,8 +1,8 @@
 # statek
 
-Multiplatform (JVM, JS) Kotlin DSL for FSM (finite state machine)
-
 ![Maven Version](https://img.shields.io/github/tag/tomoya0x00/statek.svg?style=flat&label=maven)
+
+Multiplatform (JVM, JS) Kotlin DSL for FSM (finite state machine)
 
 ## Some samples:
 
