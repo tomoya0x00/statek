@@ -1,6 +1,6 @@
 # statek
 
-FSM DSL in kotlin.
+Multiplatform (JVM, JS) Kotlin DSL for FSM (finite state machine)
 
 ![Maven Version](https://img.shields.io/github/tag/tomoya0x00/statek.svg?style=flat&label=maven)
 
@@ -28,11 +28,11 @@ for more details, please see [FsmTest](https://github.com/tomoya0x00/statek/blob
 ### Usage with gradle:
 
 ```
-def statekVersion = "0.3.0"
-
 repositories {
     maven { url "https://dl.bintray.com/tomoya0x00/maven" }
 }
+
+def statekVersion = "0.3.0"
 
 // For multiplatform projects
 implementation "com.github.tomoya0x00:statek:$statekVersion"
