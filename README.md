@@ -35,8 +35,8 @@ repositories {
 }
 
 // For multiplatform projects
-implementation "com.github.tomoya0x00:statek:$klockVersion"
+implementation "com.github.tomoya0x00:statek:$statekVersion"
 
 // For jvm projects
-implementation "com.github.tomoya0x00:statek-jvm:$klockVersion"
+implementation "com.github.tomoya0x00:statek-jvm:$statekVersion"
 ```
