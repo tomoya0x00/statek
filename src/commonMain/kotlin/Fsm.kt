@@ -16,16 +16,14 @@ annotation class FsmDsl
 class StateMachine<T>(
     private var fsmContext: FsmContext<T>,
     private val transitionMap: Map<T, List<Transition<T>>>,
-    private val stateToRootMap: Map<T, List<StateDetail<T>>>
+    private val stateToRootMap: Map<T, LinkedHashMap<T, StateDetail<T>>>
 
 ) where T : Enum<T>, T : BaseState {
     val state: T
         get() = fsmContext.state
 
     fun isStateOfChildOf(state: T): Boolean =
-        stateToRootMap[this.state]?.let { stateToRoot ->
-            stateToRoot.drop(1).any { it.state == state }
-        } ?: false
+        this.state != state && (stateToRootMap[this.state]?.containsKey(state) ?: false)
 
     fun dispatch(event: BaseEvent): T {
         return fsmContext.dispatch(event, transitionMap)
@@ -55,29 +53,37 @@ class StateMachine<T>(
         fun build(): StateMachine<T> {
             val allStateDetails = allStateDetails
 
-            val stateToRootMap = mutableMapOf<T, List<StateDetail<T>>>()
+            val stateToRootMap = mutableMapOf<T, LinkedHashMap<T, StateDetail<T>>>()
             allStateDetails.forEach { stateDetail ->
                 if (stateToRootMap.containsKey(stateDetail.state)) {
                     throw Exception("duplicate state(${stateDetail.state.enumNameOrClassName()}) found!")
                 }
 
-                stateToRootMap[stateDetail.state] = generateSequence(stateDetail) { it.parent }.toList()
+                stateToRootMap[stateDetail.state] =
+                    generateSequence(stateDetail) { it.parent }.fold(LinkedHashMap()) { acc, parent ->
+                        acc[parent.state] = parent
+                        acc
+                    }
             }
 
             val transitionMap = mutableMapOf<T, MutableList<Transition<T>>>()
             allStateDetails.forEach { stateDetail ->
                 transitionMap[stateDetail.state] = mutableListOf()
 
-                val stateToRoot = stateToRootMap[stateDetail.state] ?: emptyList()
+                val stateToRoot = stateToRootMap[stateDetail.state] ?: return@forEach
 
                 stateDetail.edges.forEach { edge ->
-                    val rootToNext = stateToRootMap[edge.next]?.reversed() ?: emptyList()
+                    val nextToRoot = stateToRootMap[edge.next]
+                        ?: throw Exception("(${stateDetail.state.enumNameOrClassName()}) to root was not found!")
 
-                    val ignoreStatesCount = stateToRoot.intersect(rootToNext).size
+                    // excluding state included in both
+                    val stateToNext = (stateToRoot.entries + nextToRoot.entries.reversed())
+                        .asSequence()
+                        .filterNot { stateToRoot.containsKey(it.key) and nextToRoot.containsKey(it.key) }
 
-                    val exitActions = stateToRoot.dropLast(ignoreStatesCount).map { it.exit }
-                    val entryActions = rootToNext.drop(ignoreStatesCount).map { it.entry }
-                    val actions = exitActions + entryActions
+                    val actions = stateToNext
+                        .map { if (stateToRoot.containsKey(it.key)) it.value.exit else it.value.entry }
+                        .toList()
 
                     transitionMap[stateDetail.state]?.add(
                         Transition(
@@ -92,7 +98,7 @@ class StateMachine<T>(
             }
 
             // execute entry actions of initial state
-            val rootToInitial = stateToRootMap[initial]?.reversed() ?: emptyList()
+            val rootToInitial = stateToRootMap[initial]?.values?.reversed() ?: emptyList()
             rootToInitial.forEach { it.entry.invoke() }
 
             return StateMachine(fsmContext, transitionMap, stateToRootMap)
