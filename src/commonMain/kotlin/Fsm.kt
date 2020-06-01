@@ -67,11 +67,14 @@ class StateMachine<T>(
             }
 
             val transitionMap = mutableMapOf<T, MutableList<Transition<T>>>()
-            allStateDetails.forEach { stateDetail ->
+
+            // sorting by depth to inherit parent's edges
+            allStateDetails.sortedBy { stateToRootMap[it.state]?.size }.forEach { stateDetail ->
                 transitionMap[stateDetail.state] = mutableListOf()
 
                 val stateToRoot = stateToRootMap[stateDetail.state] ?: return@forEach
 
+                // translate my edges to transitions
                 stateDetail.edges.forEach { edge ->
                     val nextToRoot = stateToRootMap[edge.next]
                         ?: throw Exception("(${stateDetail.state.enumNameOrClassName()}) to root was not found!")
@@ -93,6 +96,18 @@ class StateMachine<T>(
                             edgeAction = edge.action,
                             actions = actions
                         )
+                    )
+                }
+
+                // translate my parent's edges to my transitions
+                val parentState = stateDetail.parent?.state ?: return@forEach
+                transitionMap[parentState]?.let { parentTransitions ->
+                    transitionMap[stateDetail.state]?.addAll(
+                        parentTransitions.map { original ->
+                            original.copy(
+                                actions = listOf(stateDetail.exit) + original.actions
+                            )
+                        }
                     )
                 }
             }

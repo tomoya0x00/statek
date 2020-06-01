@@ -21,6 +21,7 @@ class FsmTest {
         object PressReturn : MyEvent()
         data class PressLock(val withReturn: Boolean) : MyEvent()
         object PressUnLock : MyEvent()
+        object PressForceReturn : MyEvent()
     }
 
     private val history = mutableListOf<String>()
@@ -37,6 +38,11 @@ class FsmTest {
                 entry = { history.add("in_OnLoan") },
                 exit = { history.add("out_OnLoan") }
             ) {
+
+                edge<MyEvent.PressForceReturn>(MyState.NOT_LOANED) {
+                    history.add("action_PressForceReturn")
+                }
+
                 state(MyState.LOCK,
                     entry = { history.add("in_Lock") },
                     exit = { history.add("out_Lock") }
@@ -142,5 +148,22 @@ class FsmTest {
         )
         assertFalse(sm.isStateOfChildOf(MyState.NOT_LOANED))
         assertFalse(sm.isStateOfChildOf(MyState.UNLOCK))
+    }
+
+    @Test
+    fun test_ChildStateInheritsEdgesOfParent() {
+        val sm = buildStateMachine(MyState.LOCK)
+
+        history.clear()
+        assertEquals(MyState.NOT_LOANED, sm.dispatch(MyEvent.PressForceReturn))
+        assertEquals(
+            listOf(
+                "action_PressForceReturn",
+                "out_Lock",
+                "out_OnLoan",
+                "in_NotLoaned"
+            ),
+            history
+        )
     }
 }
