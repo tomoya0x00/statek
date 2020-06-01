@@ -3,7 +3,10 @@ apply plugin: 'com.jfrog.bintray'
 apply from: rootProject.file('gradle/metadata.gradle')
 
 Properties properties = new Properties()
-properties.load(rootProject.file('local.properties').newDataInputStream())
+def propertiesFile = rootProject.file('local.properties')
+if (propertiesFile.exists()) {
+    properties.load(propertiesFile.newDataInputStream())
+}
 
 bintray {
     user = properties.getProperty('bintrayUser') ?: System.getenv('BINTRAY_USER')

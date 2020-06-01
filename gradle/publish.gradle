@@ -10,7 +10,10 @@ apply from: rootProject.file('gradle/metadata.gradle')
 def platform = platformOf(project)
 
 Properties properties = new Properties()
-properties.load(rootProject.file('local.properties').newDataInputStream())
+def propertiesFile = rootProject.file('local.properties')
+if (propertiesFile.exists()) {
+    properties.load(propertiesFile.newDataInputStream())
+}
 
 publishing {
     repositories {
