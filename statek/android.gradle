@@ -1,0 +1,28 @@
+import dependencies.Dep
+import dependencies.Versions
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion Versions.compileSdkVersion
+    buildToolsVersion Versions.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion Versions.minSdkVersion
+        targetSdkVersion Versions.targetSdkVersion
+        versionCode Versions.androidVersionCode
+        versionName Versions.androidVersionName
+    }
+
+    sourceSets.each {
+        it.manifest.srcFile "src/androidMain/AndroidManifest.xml"
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation Dep.Kotlin.jvm
+}

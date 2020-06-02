@@ -1,55 +1,23 @@
-plugins {
-    id 'kotlin-multiplatform' version '1.3.72'
-    id "com.jfrog.bintray" version "1.8.5"
-}
+import dependencies.Dep
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
-kotlin {
-    targets {
-        fromPreset(presets.jvm, 'jvm')
-        fromPreset(presets.js, 'js')
+buildscript {
+    repositories {
+        google()
+        jcenter()
     }
-    sourceSets {
-        commonMain {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-stdlib-common'
-            }
-        }
-        commonTest {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-test-common'
-                implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
-            }
-        }
-        jvmMain {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-            }
-        }
-        jvmTest {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-test'
-                implementation 'org.jetbrains.kotlin:kotlin-test-junit'
-            }
-        }
-        jsMain {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-stdlib-js'
-            }
-        }
-        jsTest {
-            dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-test-js'
-            }
-        }
+
+    dependencies {
+        classpath Dep.GradlePlugin.kotlin
+        classpath Dep.GradlePlugin.android
+
+        // for upload bintray plugin
+        classpath Dep.GradlePlugin.bintray
     }
 }
 
-apply from: rootProject.file('gradle/publish.gradle')
-apply from: rootProject.file('gradle/metadata.gradle')
-
-group metadata.groupId
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}

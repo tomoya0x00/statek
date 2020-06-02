@@ -1,45 +1,112 @@
-apply plugin: 'java'
-apply plugin: 'maven'
+import dependencies.Versions
+
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray'
 
-apply from: rootProject.file('gradle/platform.gradle')
-apply from: rootProject.file('gradle/maven.gradle')
-apply from: rootProject.file('gradle/metadata.gradle')
+group = ARTIFACT_ID
+version = Versions.versionName
 
-def platform = platformOf(project)
-
-Properties properties = new Properties()
-def propertiesFile = rootProject.file('local.properties')
-if (propertiesFile.exists()) {
-    properties.load(propertiesFile.newDataInputStream())
-}
-
-publishing {
-    repositories {
-        maven {
-            credentials {
-                username properties.getProperty('bintrayUser') ?: System.getenv('BINTRAY_USER')
-                password properties.getProperty('bintrayApiKey') ?: System.getenv('BINTRAY_API_KEY')
-            }
-            url 'https://api.bintray.com/maven/tomoya0x00/maven/statek/'
+def pomConfig = {
+    licenses {
+        license {
+            name POM_LICENSE_NAME
+            url POM_LICENSE_URL
+            distribution POM_LICENSE_DIST
         }
     }
-
-    publications {
-        MyPublication(MavenPublication) {
-            if (platform != 'native') {
-                from components.java
-            }
-
-            artifactId rootProject.name
-            groupId project.group
-            version project.version
-
-            configurePom(pom)
+    developers {
+        developer {
+            id POM_DEVELOPER_ID
+            name POM_DEVELOPER_NAME
+            organization POM_ORGANIZATION_NAME
+            organizationUrl POM_ORGANIZATION_URL
         }
+    }
+    scm {
+        url SITE_URL
     }
 }
 
-apply from: rootProject.file("gradle/bintray.gradle")
+def getBintrayUserProperty() {
+    return hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+}
 
+def getBintrayApiKeyProperty() {
+    return hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+}
+
+bintray {
+    user = getBintrayUserProperty()
+    key = getBintrayApiKeyProperty()
+    publish = false
+    override = true // for multi-platform Kotlin/Native publishing
+
+    pkg {
+        repo = BINTRAY_REPOSITORY
+        name = BINTRAY_NAME
+        userOrg = GROUP
+        licenses = ['Apache-2.0']
+        vcsUrl = VCS_URL
+        websiteUrl = SITE_URL
+        issueTrackerUrl = ISSUE_URL
+
+        version {
+            name = Versions.versionName
+            vcsTag = Versions.versionName
+            released = new Date()
+        }
+    }
+}
+
+afterEvaluate {
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from kotlin.sourceSets.commonMain.kotlin
+    }
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier = 'javadoc'
+}
+
+afterEvaluate {
+    publishing {
+        def projectName = project.name
+
+        publications.all {
+            artifactId projectName
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('name', projectName)
+                root.appendNode('description', POM_DESCRIPTION)
+                root.appendNode('url', SITE_URL)
+                root.children().last() + pomConfig
+            }
+
+            // rename artifacts
+            groupId = BINTRAY_PACKAGE
+            if (name == 'kotlinMultiplatform') {
+                // native includes all artifacts info
+                artifactId = "$projectName-ios"
+                artifact sourcesJar
+            } else if (name == 'metadata') {
+                // common module
+                artifactId = "$projectName"
+            } else {
+                artifactId = "$projectName-$name"
+            }
+            // disable metadata everywhere, but in ios modules
+            if (!it.name.contains('ios') && it.name != 'kotlinMultiplatform') {
+                moduleDescriptorGenerator = null
+            }
+        }
+    }
+}
+
+bintrayUpload.doFirst {
+    publications = project.publishing.publications.findAll { !it.name.contains('-test') }.collect {
+        it.name
+    }
+}
+
+bintrayUpload.dependsOn publishToMavenLocal
