@@ -1,7 +1,4 @@
-import com.github.tomoya0x00.statek.BaseEvent
-import com.github.tomoya0x00.statek.BaseState
-import com.github.tomoya0x00.statek.StateMachine
-import com.github.tomoya0x00.statek.stateMachine
+import com.github.tomoya0x00.statek.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -26,8 +23,8 @@ class FsmTest {
 
     private val history = mutableListOf<String>()
 
-    private fun buildStateMachine(initial: MyState): StateMachine<MyState> =
-        stateMachine(initial = initial) {
+    private fun smBuilder(initial: MyState) :StateMachine.Builder<MyState> =
+        stateMachineBuilder(initial = initial) {
             state(MyState.NOT_LOANED,
                 entry = { history.add("in_NotLoaned") },
                 exit = { history.add("out_NotLoaned") }
@@ -65,10 +62,12 @@ class FsmTest {
             }
         }
 
+    private fun stateMachine(initial: MyState): StateMachine<MyState> =
+        smBuilder(initial).build()
 
     @Test
     fun test() {
-        val sm = buildStateMachine(MyState.NOT_LOANED)
+        val sm = stateMachine(MyState.NOT_LOANED)
 
         assertEquals(MyState.NOT_LOANED, sm.state)
         assertEquals(
@@ -152,7 +151,7 @@ class FsmTest {
 
     @Test
     fun test_ChildStateInheritsEdgesOfParent() {
-        val sm = buildStateMachine(MyState.LOCK)
+        val sm = stateMachine(MyState.LOCK)
 
         history.clear()
         assertEquals(MyState.NOT_LOANED, sm.dispatch(MyEvent.PressForceReturn))
@@ -165,5 +164,12 @@ class FsmTest {
             ),
             history
         )
+    }
+
+    @Test
+    fun test_generatePlantUml() {
+        val builder = smBuilder(MyState.NOT_LOANED)
+
+        println(builder.generatePlantUml())
     }
 }

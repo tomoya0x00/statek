@@ -119,6 +119,15 @@ class StateMachine<T>(
             return StateMachine(fsmContext, transitionMap, stateToRootMap)
         }
 
+        fun generatePlantUml(): String {
+            return """
+                |@startuml
+                |[*] --> ${initial.name}
+                |${rootChildren.joinToString("\n") { it.generatePlantUml() }}
+                |@enduml
+            """.trimMargin()
+        }
+
         override fun toString(): String {
             return "StateMachine\n" +
                     rootChildren.joinToString("\n") { it.toString() }.prependIndent("  ")
@@ -170,6 +179,15 @@ class StateDetail<T>(
         action = action?.let { { event: BaseEvent -> it.invoke(state, event as R) } }
     ))
 
+    fun generatePlantUml(): String {
+        return """
+            |state ${state.enumNameOrClassName()} {
+            |${edges.joinToString("\n") { it.generatePlantUml(state) }.prependIndent("  ")}
+            |${children.joinToString("\n") { it.generatePlantUml() }.prependIndent("  ")}
+            |}
+        """.trimMargin()
+    }
+
     override fun toString(): String {
         return "${state.enumNameOrClassName()}\n" +
                 edges.joinToString("\n") { it.toString() }.prependIndent("  ") + "\n" +
@@ -185,6 +203,10 @@ class Edge<T>(
 ) where T : Enum<T>, T : BaseState {
     override fun toString(): String {
         return "--> ${next.name} : $eventName"
+    }
+
+    fun generatePlantUml(fromState: T): String {
+        return "${fromState.enumNameOrClassName()} --> ${next.name} : $eventName"
     }
 }
 
@@ -217,4 +239,10 @@ fun <T> stateMachine(
     initial: T,
     init: StateMachine.Builder<T>.() -> Unit
 ): StateMachine<T> where T : Enum<T>, T : BaseState =
-    StateMachine.Builder(initial = initial).apply(init).build()
+    stateMachineBuilder(initial = initial, init = init).build()
+
+fun <T> stateMachineBuilder(
+    initial: T,
+    init: StateMachine.Builder<T>.() -> Unit
+): StateMachine.Builder<T> where T : Enum<T>, T : BaseState =
+    StateMachine.Builder(initial = initial).apply(init)
