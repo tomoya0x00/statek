@@ -10,7 +10,8 @@ class FsmTest {
         NOT_LOANED,
         ON_LOAN,
         LOCK,
-        UNLOCK
+        UNLOCK,
+        EMERGENCY_LOCK
     }
 
     sealed class MyEvent : BaseEvent {
@@ -19,11 +20,12 @@ class FsmTest {
         data class PressLock(val withReturn: Boolean) : MyEvent()
         object PressUnLock : MyEvent()
         object PressForceReturn : MyEvent()
+        object PressEmergencyLock : MyEvent()
     }
 
     private val history = mutableListOf<String>()
 
-    private fun smBuilder(initial: MyState) :StateMachine.Builder<MyState> =
+    private fun smBuilder(initial: MyState): StateMachine.Builder<MyState> =
         stateMachineBuilder(initial = initial) {
             state(MyState.NOT_LOANED,
                 entry = { history.add("in_NotLoaned") },
@@ -40,6 +42,10 @@ class FsmTest {
                     history.add("action_PressForceReturn")
                 }
 
+                edge<MyEvent.PressEmergencyLock>(MyState.EMERGENCY_LOCK) {
+                    history.add("action_PressEmergencyLock")
+                }
+
                 state(MyState.LOCK,
                     entry = { history.add("in_Lock") },
                     exit = { history.add("out_Lock") }
@@ -49,6 +55,11 @@ class FsmTest {
                     edge<MyEvent.PressLock> {
                         history.add("action_PressLock")
                     }
+
+                    state(MyState.EMERGENCY_LOCK,
+                        entry = { history.add("in_EmergencyLock") },
+                        exit = { history.add("out_EmergencyLock") }
+                    )
                 }
                 state(MyState.UNLOCK,
                     entry = { history.add("in_UnLock") },
@@ -150,7 +161,7 @@ class FsmTest {
     }
 
     @Test
-    fun test_ChildStateInheritsEdgesOfParent() {
+    fun test_ChildStateInheritsEdgesOfParent_WithEntryChildState() {
         val sm = stateMachine(MyState.LOCK)
 
         history.clear()
@@ -161,6 +172,21 @@ class FsmTest {
                 "out_Lock",
                 "out_OnLoan",
                 "in_NotLoaned"
+            ),
+            history
+        )
+    }
+
+    @Test
+    fun test_ChildStateInheritsEdgesOfParent_WithIntoChildState() {
+        val sm = stateMachine(MyState.LOCK)
+
+        history.clear()
+        assertEquals(MyState.EMERGENCY_LOCK, sm.dispatch(MyEvent.PressEmergencyLock))
+        assertEquals(
+            listOf(
+                "action_PressEmergencyLock",
+                "in_EmergencyLock"
             ),
             history
         )

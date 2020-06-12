@@ -100,13 +100,35 @@ class StateMachine<T>(
                 }
 
                 // translate my parent's edges to my transitions
+                val stateDepth = stateToRootMap[stateDetail.state]?.size
+                    ?: throw  Exception("depth of the ${stateDetail.state} is unknown!")
+                val childStates = stateDetail.allStateDetails.map { it.state }
                 val parentState = stateDetail.parent?.state ?: return@forEach
                 transitionMap[parentState]?.let { parentTransitions ->
                     transitionMap[stateDetail.state]?.addAll(
                         parentTransitions.map { original ->
-                            original.copy(
-                                actions = listOf(stateDetail.exit) + original.actions
-                            )
+                            when (original.next) {
+                                // none transition
+                                stateDetail.state -> {
+                                    original.copy(
+                                        actions = emptyList()
+                                    )
+                                }
+                                // transition into my child states
+                                in childStates -> {
+                                    val nextStateDepth = stateToRootMap[original.next]?.size
+                                        ?: throw  Exception("depth of the ${original.next} is unknown!")
+                                    original.copy(
+                                        actions = original.actions.takeLast(nextStateDepth - stateDepth)
+                                    )
+                                }
+                                // transition out of my state
+                                else -> {
+                                    original.copy(
+                                        actions = listOf(stateDetail.exit) + original.actions
+                                    )
+                                }
+                            }
                         }
                     )
                 }
