@@ -77,7 +77,7 @@ class StateMachine<T>(
                 // translate my edges to transitions
                 stateDetail.edges.forEach { edge ->
                     val nextToRoot = stateToRootMap[edge.next]
-                        ?: throw Exception("(${stateDetail.state.enumNameOrClassName()}) to root was not found!")
+                        ?: throw Exception("path of the ${edge.next.enumNameOrClassName()} to the root was not found!")
 
                     // excluding state included in both
                     val stateToNext = (stateToRoot.entries + nextToRoot.entries.reversed())
