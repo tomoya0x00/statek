@@ -35,13 +35,17 @@ class StateMachine<T>(
             state: T,
             entry: EntryStatement<T> = {},
             exit: ExitStatement<T> = {},
+            note: String? = null,
             init: StateDetail<T>.() -> Unit = {}
-        ) = this.rootChildren.add(StateDetail(
-            parent = null,
-            state = state,
-            entry = { entry.invoke(state) },
-            exit = { exit.invoke(state) }
-        ).apply(init))
+        ) = this.rootChildren.add(
+            StateDetail(
+                parent = null,
+                state = state,
+                entry = { entry.invoke(state) },
+                exit = { exit.invoke(state) },
+                note = note
+            ).apply(init)
+        )
 
         fun build(): StateMachine<T> {
             val allStateDetails = allStateDetails
@@ -163,7 +167,8 @@ class StateDetail<T>(
     val parent: StateDetail<T>?,
     val state: T,
     val entry: ActionStatement = {},
-    val exit: ActionStatement = {}
+    val exit: ActionStatement = {},
+    val note: String? = null
 ) where T : Enum<T>, T : BaseState {
     private val children: MutableList<StateDetail<T>> = mutableListOf()
     val edges: MutableList<Edge<T>> = mutableListOf()
@@ -175,13 +180,17 @@ class StateDetail<T>(
         state: T,
         entry: EntryStatement<T> = {},
         exit: ExitStatement<T> = {},
+        note: String? = null,
         init: StateDetail<T>.() -> Unit = {}
-    ) = this.children.add(StateDetail(
-        parent = this,
-        state = state,
-        entry = { entry.invoke(state) },
-        exit = { exit.invoke(state) }
-    ).apply(init))
+    ) = this.children.add(
+        StateDetail(
+            parent = this,
+            state = state,
+            entry = { entry.invoke(state) },
+            exit = { exit.invoke(state) },
+            note = note
+        ).apply(init)
+    )
 
     inline fun <reified R : BaseEvent> edge(
         next: T = this.state,
@@ -212,6 +221,7 @@ class StateDetail<T>(
 
     fun generatePlantUml(): String {
         return """
+            |${note?.let { "note left of ${state.enumNameOrClassName()} : ${it.replace("\n", "\\n")}" } ?: ""}
             |state ${state.enumNameOrClassName()} {
             |${edges.joinToString("\n") { it.generatePlantUml(state) }.prependIndent("  ")}
             |${children.joinToString("\n") { it.generatePlantUml() }.prependIndent("  ")}

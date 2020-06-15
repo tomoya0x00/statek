@@ -25,9 +25,11 @@ class FsmTest {
 
     private fun smBuilder(initial: MyState): StateMachine.Builder<MyState> =
         stateMachineBuilder(initial = initial) {
-            state(MyState.NOT_LOANED,
+            state(
+                MyState.NOT_LOANED,
                 entry = { history.add("in_NotLoaned") },
-                exit = { history.add("out_NotLoaned") }
+                exit = { history.add("out_NotLoaned") },
+                note = "This is a \n note"
             ) {
                 edge<MyEvent.PressRental>(MyState.LOCK)
             }
