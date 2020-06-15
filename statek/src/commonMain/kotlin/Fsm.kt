@@ -3,13 +3,6 @@ package com.github.tomoya0x00.statek
 interface BaseState
 interface BaseEvent
 
-private typealias EventName = String
-private typealias Action = () -> Unit
-private typealias Entry<T> = T.() -> Unit
-private typealias Exit<T> = T.() -> Unit
-private typealias Guard<S, E> = S.(E) -> Boolean
-private typealias EdgeAction<S, E> = S.(E) -> Unit
-
 @DslMarker
 annotation class FsmDsl
 
@@ -40,8 +33,8 @@ class StateMachine<T>(
 
         fun state(
             state: T,
-            entry: Entry<T> = {},
-            exit: Exit<T> = {},
+            entry: EntryStatement<T> = {},
+            exit: ExitStatement<T> = {},
             init: StateDetail<T>.() -> Unit = {}
         ) = this.rootChildren.add(StateDetail(
             parent = null,
@@ -161,7 +154,7 @@ class StateMachine<T>(
         val guard: ((BaseEvent) -> Boolean)? = null,
         val next: T,
         val edgeAction: ((BaseEvent) -> Unit)? = null,
-        val actions: List<Action> = listOf()
+        val actions: List<ActionStatement> = listOf()
     ) where T : Enum<T>, T : BaseState
 }
 
@@ -169,8 +162,8 @@ class StateMachine<T>(
 class StateDetail<T>(
     val parent: StateDetail<T>?,
     val state: T,
-    val entry: Action = {},
-    val exit: Action = {}
+    val entry: ActionStatement = {},
+    val exit: ActionStatement = {}
 ) where T : Enum<T>, T : BaseState {
     private val children: MutableList<StateDetail<T>> = mutableListOf()
     val edges: MutableList<Edge<T>> = mutableListOf()
@@ -180,8 +173,8 @@ class StateDetail<T>(
 
     fun state(
         state: T,
-        entry: Entry<T> = {},
-        exit: Exit<T> = {},
+        entry: EntryStatement<T> = {},
+        exit: ExitStatement<T> = {},
         init: StateDetail<T>.() -> Unit = {}
     ) = this.children.add(StateDetail(
         parent = this,
@@ -192,14 +185,30 @@ class StateDetail<T>(
 
     inline fun <reified R : BaseEvent> edge(
         next: T = this.state,
-        noinline guard: Guard<T, R>? = null,
-        noinline action: EdgeAction<T, R>? = null
-    ) = this.edges.add(Edge(
-        eventName = R::class.simpleName ?: "",
-        guard = guard?.let { { event: BaseEvent -> it.invoke(state, event as R) } },
-        next = next,
-        action = action?.let { { event: BaseEvent -> it.invoke(state, event as R) } }
-    ))
+        guard: Guard<T, R>,
+        noinline action: EdgeActionStatement<T, R>? = null
+    ) = this.edges.add(
+        Edge(
+            eventName = R::class.simpleName ?: "",
+            guard = { event: BaseEvent -> guard.guardStatement.invoke(state, event as R) },
+            guardDescription = guard.description,
+            next = next,
+            action = action?.let { { event: BaseEvent -> it.invoke(state, event as R) } }
+        )
+    )
+
+    inline fun <reified R : BaseEvent> edge(
+        next: T = this.state,
+        noinline guard: GuardStatement<T, R>? = null,
+        noinline action: EdgeActionStatement<T, R>? = null
+    ) = this.edges.add(
+        Edge(
+            eventName = R::class.simpleName ?: "",
+            guard = guard?.let { { event: BaseEvent -> it.invoke(state, event as R) } },
+            next = next,
+            action = action?.let { { event: BaseEvent -> it.invoke(state, event as R) } }
+        )
+    )
 
     fun generatePlantUml(): String {
         return """
@@ -221,6 +230,7 @@ class Edge<T>(
     val eventName: EventName,
     val next: T,
     val guard: ((BaseEvent) -> Boolean)? = null,
+    val guardDescription: String? = null,
     val action: ((BaseEvent) -> Unit)? = null
 ) where T : Enum<T>, T : BaseState {
     override fun toString(): String {
@@ -228,7 +238,7 @@ class Edge<T>(
     }
 
     fun generatePlantUml(fromState: T): String {
-        return "${fromState.enumNameOrClassName()} --> ${next.name} : $eventName"
+        return "${fromState.enumNameOrClassName()} --> ${next.name} : $eventName${guardDescription?.let { "\\n[$it]" } ?: ""}"
     }
 }
 

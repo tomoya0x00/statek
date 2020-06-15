@@ -10,8 +10,7 @@ class FsmTest {
         NOT_LOANED,
         ON_LOAN,
         LOCK,
-        UNLOCK,
-        EMERGENCY_LOCK
+        UNLOCK
     }
 
     sealed class MyEvent : BaseEvent {
@@ -20,7 +19,6 @@ class FsmTest {
         data class PressLock(val withReturn: Boolean) : MyEvent()
         object PressUnLock : MyEvent()
         object PressForceReturn : MyEvent()
-        object PressEmergencyLock : MyEvent()
     }
 
     private val history = mutableListOf<String>()
@@ -42,10 +40,6 @@ class FsmTest {
                     history.add("action_PressForceReturn")
                 }
 
-                edge<MyEvent.PressEmergencyLock>(MyState.EMERGENCY_LOCK) {
-                    history.add("action_PressEmergencyLock")
-                }
-
                 state(MyState.LOCK,
                     entry = { history.add("in_Lock") },
                     exit = { history.add("out_Lock") }
@@ -55,18 +49,20 @@ class FsmTest {
                     edge<MyEvent.PressLock> {
                         history.add("action_PressLock")
                     }
-
-                    state(MyState.EMERGENCY_LOCK,
-                        entry = { history.add("in_EmergencyLock") },
-                        exit = { history.add("out_EmergencyLock") }
-                    )
                 }
                 state(MyState.UNLOCK,
                     entry = { history.add("in_UnLock") },
                     exit = { history.add("out_UnLock") }
                 ) {
-                    edge<MyEvent.PressLock>(MyState.LOCK, guard = { !it.withReturn })
-                    edge<MyEvent.PressLock>(MyState.NOT_LOANED, guard = { it.withReturn }) {
+                    edge<MyEvent.PressLock>(
+                        MyState.LOCK,
+                        guard = Guard("with out return") { !it.withReturn }
+                    )
+
+                    edge<MyEvent.PressLock>(
+                        MyState.NOT_LOANED,
+                        guard = { it.withReturn }
+                    ) {
                         history.add("action_PressLockWithReturn")
                     }
                 }
@@ -172,21 +168,6 @@ class FsmTest {
                 "out_Lock",
                 "out_OnLoan",
                 "in_NotLoaned"
-            ),
-            history
-        )
-    }
-
-    @Test
-    fun test_ChildStateInheritsEdgesOfParent_WithIntoChildState() {
-        val sm = stateMachine(MyState.LOCK)
-
-        history.clear()
-        assertEquals(MyState.EMERGENCY_LOCK, sm.dispatch(MyEvent.PressEmergencyLock))
-        assertEquals(
-            listOf(
-                "action_PressEmergencyLock",
-                "in_EmergencyLock"
             ),
             history
         )
