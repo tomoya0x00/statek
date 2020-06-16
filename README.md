@@ -32,7 +32,7 @@ repositories {
     maven { url "https://dl.bintray.com/tomoya0x00/maven" }
 }
 
-def statekVersion = "0.4.0"
+def statekVersion = "0.5.0"
 
 // For multiplatform projects
 implementation "com.github.tomoya0x00:statek:$statekVersion"
