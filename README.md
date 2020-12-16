@@ -23,7 +23,7 @@ stateMachine(initial = MyState.NOT_LOANED) {
 }
 ```
 
-for more details, please see [FsmTest](https://github.com/tomoya0x00/statek/blob/master/src/commonTest/kotlin/FsmTest.kt)
+for more details, please see [FsmTest](https://github.com/tomoya0x00/statek/blob/master/statek/src/commonTest/kotlin/FsmTest.kt)
 
 ### Usage with gradle:
 
