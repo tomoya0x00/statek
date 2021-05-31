@@ -2,7 +2,7 @@
 
 ![Maven Version](https://img.shields.io/github/tag/tomoya0x00/statek.svg?style=flat&label=maven)
 
-Multiplatform (JVM, JS) Kotlin DSL for FSM (finite state machine)
+Multiplatform (JVM, JS, iOS Kotlin/Native) Kotlin DSL for FSM (finite state machine)
 
 ## Some samples:
 
@@ -29,14 +29,14 @@ for more details, please see [FsmTest](https://github.com/tomoya0x00/statek/blob
 
 ```
 repositories {
-    maven { url "https://dl.bintray.com/tomoya0x00/maven" }
+    mavenCentral()
 }
 
 def statekVersion = "0.5.0"
 
 // For multiplatform projects
-implementation "com.github.tomoya0x00:statek:$statekVersion"
+implementation "io.github.tomoya0x00:statek:$statekVersion"
 
 // For jvm projects
-implementation "com.github.tomoya0x00:statek-jvm:$statekVersion"
+implementation "io.github.tomoya0x00:statek-jvm:$statekVersion"
 ```
